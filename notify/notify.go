@@ -20,6 +20,7 @@ package notify
 import (
 	"github.com/megaease/easeprobe/global"
 	"github.com/megaease/easeprobe/notify/aws"
+	"github.com/megaease/easeprobe/notify/bark"
 	"github.com/megaease/easeprobe/notify/dingtalk"
 	"github.com/megaease/easeprobe/notify/discord"
 	"github.com/megaease/easeprobe/notify/email"
@@ -40,6 +41,7 @@ type Config struct {
 	AwsSNS   []aws.SNSNotifyConfig   `yaml:"aws_sns"`
 	Wecom    []wecom.NotifyConfig    `yaml:"wecom"`
 	Dingtalk []dingtalk.NotifyConfig `yaml:"dingtalk"`
+	Bark     []bark.NotifyConfig     `yaml:"bark"`
 }
 
 // Notify is the configuration of the Notify
