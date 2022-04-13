@@ -40,14 +40,14 @@ archives:
 
 release:
   github:
-    owner: megaease
+    owner: xzdbd
     name: easeprobe
   name_template: "{{ .ProjectName }}-v{{ .Version }}"
 
 dockers:
   - image_templates:
-    - megaease/easeprobe:latest
-    - megaease/easeprobe:{{ .Tag }}
+    - xzdbd/easeprobe:latest
+    - xzdbd/easeprobe:{{ .Tag }}
 
     goos: linux
     goarch: amd64
