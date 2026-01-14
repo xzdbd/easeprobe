@@ -75,7 +75,6 @@ func (l *LogLevel) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Schedule is the schedule.
 type Schedule int
 
-//
 const (
 	Hourly Schedule = iota
 	Daily
@@ -146,8 +145,8 @@ type Conf struct {
 	Settings Settings        `yaml:"settings"`
 }
 
-// New read the configuration from yaml
-func New(conf *string) (Conf, error) {
+// NewFromBytes read the configuration from bytes
+func NewFromBytes(y []byte) (Conf, error) {
 	c := Conf{
 		HTTP:  []http.HTTP{},
 		TCP:   []tcp.TCP{},
@@ -181,15 +180,10 @@ func New(conf *string) (Conf, error) {
 			logfile: nil,
 		},
 	}
-	y, err := ioutil.ReadFile(*conf)
-	if err != nil {
-		log.Errorf("error: %v ", err)
-		return c, err
-	}
 
 	y = []byte(os.ExpandEnv(string(y)))
 
-	err = yaml.Unmarshal(y, &c)
+	err := yaml.Unmarshal(y, &c)
 	if err != nil {
 		log.Errorf("error: %v", err)
 		return c, err
@@ -213,6 +207,16 @@ func New(conf *string) (Conf, error) {
 	return c, err
 }
 
+// New read the configuration from yaml
+func New(conf *string) (Conf, error) {
+	y, err := ioutil.ReadFile(*conf)
+	if err != nil {
+		log.Errorf("error: %v ", err)
+		return Conf{}, err
+	}
+	return NewFromBytes(y)
+}
+
 func (conf *Conf) initLog() {
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	if conf == nil {
@@ -220,14 +224,18 @@ func (conf *Conf) initLog() {
 		log.SetLevel(log.InfoLevel)
 	} else {
 		// open a file
-		f, err := os.OpenFile(conf.Settings.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0660)
-		if err != nil {
-			log.Warnf("Cannot open log file: %v", err)
-			log.Infoln("Using Standard Output as the log output...")
-			log.SetOutput(os.Stdout)
+		if conf.Settings.LogFile != "" {
+			f, err := os.OpenFile(conf.Settings.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0660)
+			if err != nil {
+				log.Warnf("Cannot open log file: %v", err)
+				log.Infoln("Using Standard Output as the log output...")
+				log.SetOutput(os.Stdout)
+			} else {
+				conf.Settings.logfile = f
+				log.SetOutput(f)
+			}
 		} else {
-			conf.Settings.logfile = f
-			log.SetOutput(f)
+			log.SetOutput(os.Stdout)
 		}
 		log.SetLevel(conf.Settings.LogLevel.Level)
 	}

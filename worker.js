@@ -1,0 +1,101 @@
+export default {
+  async fetch(request, env, ctx) {
+    return handleRequest(request, env);
+  },
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(handleScheduled(event, env));
+  }
+};
+
+// Polyfill process.env for Go's os.Environ()
+if (!globalThis.process) {
+  globalThis.process = {
+    env: {}
+  };
+}
+
+const go = new Go();
+let inst;
+
+async function init(env) {
+  if (inst) return;
+
+  // Populate process.env with Worker environment variables
+  if (env) {
+    for (const [key, value] of Object.entries(env)) {
+      if (typeof value === 'string') {
+        globalThis.process.env[key] = value;
+      }
+    }
+  }
+
+  // Retrieve WASM module
+  // It is imported at the top level as WASM_MODULE
+  if (typeof WASM_MODULE === 'undefined') {
+     throw new Error("WASM module not found. Import failed.");
+  }
+
+  const importObject = go.importObject;
+
+  const result = await WebAssembly.instantiate(WASM_MODULE, importObject);
+
+  if (result.instance) {
+    inst = result.instance;
+  } else {
+    inst = result;
+  }
+
+  go.run(inst);
+}
+
+async function handleRequest(request, env) {
+  try {
+    await init(env);
+
+    // Default config from environment variable
+    let configStr = "";
+    if (env && env.CONFIG_YAML) {
+       configStr = env.CONFIG_YAML;
+    }
+
+    // Or allow passing config via POST body for testing
+    if (request.method === "POST") {
+       configStr = await request.text();
+    }
+
+    if (!configStr) {
+      return new Response("Configuration not found. Set CONFIG_YAML env var or POST config.", { status: 500 });
+    }
+
+    const result = await check(configStr, false); // false for dryRun
+
+    return new Response(JSON.stringify(result, null, 2), {
+      headers: { 'content-type': 'application/json' },
+    });
+  } catch (e) {
+    return new Response(e.stack || e.toString(), { status: 500 });
+  }
+}
+
+async function handleScheduled(event, env) {
+  try {
+    await init(env);
+
+    let configStr = "";
+    if (env && env.CONFIG_YAML) {
+       configStr = env.CONFIG_YAML;
+    }
+
+    if (!configStr) {
+      console.error("Configuration not found. Set CONFIG_YAML env var.");
+      return;
+    }
+
+    const result = await check(configStr, false);
+
+    console.log(JSON.stringify(result));
+
+  } catch (e) {
+    console.error(e.stack || e.toString());
+  }
+}

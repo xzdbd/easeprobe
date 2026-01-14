@@ -1,4 +1,3 @@
-.idea/
-.vscode/
-build/*
-config.yaml
+main.wasm
+dist/worker.js
+wasm_exec.js

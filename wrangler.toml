@@ -1,0 +1,20 @@
+name = "easeprobe-worker"
+main = "dist/worker.js"
+compatibility_date = "2023-10-02"
+
+[[rules]]
+type = "CompiledWasm"
+globs = ["*.wasm"]
+fallthrough = false
+
+[vars]
+CONFIG_YAML = """
+http:
+  - name: Google
+    url: https://www.google.com
+    interval: 1m
+    timeout: 5s
+"""
+
+[triggers]
+crons = ["* * * * *"]
