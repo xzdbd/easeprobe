@@ -28,12 +28,14 @@ import (
 	"github.com/megaease/easeprobe/global"
 	"github.com/megaease/easeprobe/notify"
 	"github.com/megaease/easeprobe/probe/http"
+	"github.com/megaease/easeprobe/probe/tcp"
 	log "github.com/sirupsen/logrus"
 )
 
 // Conf is Probe configuration (Slim for WASM)
 type Conf struct {
 	HTTP     []http.HTTP     `yaml:"http" json:"http"`
+	TCP      []tcp.TCP       `yaml:"tcp" json:"tcp"`
 	Notify   notify.Config   `yaml:"notify" json:"notify"`
 	Settings Settings        `yaml:"settings" json:"settings"`
 }
@@ -43,6 +45,7 @@ type Conf struct {
 func NewFromBytes(y []byte) (Conf, error) {
 	c := Conf{
 		HTTP:  []http.HTTP{},
+		TCP:   []tcp.TCP{},
 		Notify: notify.Config{},
 		Settings: Settings{
 			LogFile:    "",

@@ -29,7 +29,7 @@ import (
 // TCP implements a config for TCP
 type TCP struct {
 	base.DefaultOptions `yaml:",inline"`
-	Host                string `yaml:"host"`
+	Host                string `yaml:"host" json:"host"`
 }
 
 // Config HTTP Config Object
