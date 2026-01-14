@@ -31,7 +31,7 @@ import (
 // NotifyConfig is the configuration of the Notify
 type NotifyConfig struct {
 	base.DefaultNotify `yaml:",inline"`
-	File               string `yaml:"file"`
+	File               string `yaml:"file" json:"file"`
 }
 
 // Kind return the type of Notify

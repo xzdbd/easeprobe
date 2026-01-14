@@ -198,7 +198,12 @@ To deploy EaseProbe to Cloudflare Workers, you need to have `wrangler` installed
    ```shell
    $ make wasm
    ```
-   This will create a `dist` directory containing `worker.js` and `main.wasm`.
+   This will create a `dist` directory containing `worker.js`, `main.wasm`, and a compressed `main.wasm.gz`.
+
+   **Note:** The WASM build is a "Slim" version to meet Cloudflare's size limits.
+   - It only supports **HTTP** probes.
+   - It only supports **Email**, **Bark**, and **Log** notifications.
+   - The configuration must be supplied as **JSON**, not YAML.
 
 2. Run locally using Wrangler:
    ```shell
@@ -210,7 +215,9 @@ To deploy EaseProbe to Cloudflare Workers, you need to have `wrangler` installed
    $ wrangler deploy
    ```
 
-You can configure the probes in `wrangler.toml` under `[vars]` or by setting environment variables in the Cloudflare dashboard.
+   Wrangler will automatically compress the `main.wasm` during upload. If you encounter size limit errors, check the size of `dist/main.wasm.gz`. It must be under 3 MiB.
+
+You can configure the probes in `wrangler.toml` under `[vars]` (as a JSON string) or by setting environment variables in the Cloudflare dashboard.
 
 ## 3. Configuration
 

@@ -63,8 +63,8 @@ type PushResponse struct {
 // NotifyConfig is the bark notification configuration
 type NotifyConfig struct {
 	base.DefaultNotify `yaml:",inline"`
-	Key                string `yaml:"key"`
-	ServerUrl          string `yaml:"server"`
+	Key                string `yaml:"key" json:"key"`
+	ServerUrl          string `yaml:"server" json:"server"`
 	PushOptions        `yaml:",inline"`
 }
 

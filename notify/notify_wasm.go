@@ -21,15 +21,15 @@
 package notify
 
 import (
-	"github.com/megaease/easeprobe/notify/discord"
+	"github.com/megaease/easeprobe/notify/bark"
+	"github.com/megaease/easeprobe/notify/email"
 	"github.com/megaease/easeprobe/notify/log"
-	"github.com/megaease/easeprobe/notify/slack"
 )
 
 //Config is the notify configuration (Slim for WASM)
 type Config struct {
-	Log      []log.NotifyConfig      `yaml:"log"`
-	Slack    []slack.NotifyConfig    `yaml:"slack"`
-	Discord  []discord.NotifyConfig  `yaml:"discord"`
-	// Removed others to save space
+	Log      []log.NotifyConfig      `yaml:"log" json:"log"`
+	Email    []email.NotifyConfig    `yaml:"email" json:"email"`
+	Bark     []bark.NotifyConfig     `yaml:"bark" json:"bark"`
+	// Removed others to save space (Slack, Discord, Telegram, Wecom, Dingtalk, AWS SNS)
 }

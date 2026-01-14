@@ -33,10 +33,10 @@ import (
 // NotifyConfig is the email notification configuration
 type NotifyConfig struct {
 	base.DefaultNotify `yaml:",inline"`
-	Server             string `yaml:"server"`
-	User               string `yaml:"username"`
-	Pass               string `yaml:"password"`
-	To                 string `yaml:"to"`
+	Server             string `yaml:"server" json:"server"`
+	User               string `yaml:"username" json:"username"`
+	Pass               string `yaml:"password" json:"password"`
+	To                 string `yaml:"to" json:"to"`
 }
 
 // Kind return the type of Notify

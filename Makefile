@@ -38,6 +38,7 @@ wasm:
 	echo "import WASM_MODULE from './main.wasm';" > dist/worker.js
 	cat wasm_exec.js >> dist/worker.js
 	cat worker.js >> dist/worker.js
+	gzip -9 -c dist/main.wasm > dist/main.wasm.gz
 
 test:
 	go test -race -count=1 ./...
