@@ -18,7 +18,6 @@
 package conf
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -28,13 +27,7 @@ import (
 	"github.com/megaease/easeprobe/global"
 	"github.com/megaease/easeprobe/notify"
 	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/client"
-	"github.com/megaease/easeprobe/probe/http"
-	"github.com/megaease/easeprobe/probe/shell"
-	"github.com/megaease/easeprobe/probe/ssh"
-	"github.com/megaease/easeprobe/probe/tcp"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 var config *Conf
@@ -132,79 +125,6 @@ type Settings struct {
 	Notify     Notify    `yaml:"notify"`
 	SLAReport  SLAReport `yaml:"sla"`
 	logfile    *os.File  `yaml:"-"`
-}
-
-// Conf is Probe configuration
-type Conf struct {
-	HTTP     []http.HTTP     `yaml:"http"`
-	TCP      []tcp.TCP       `yaml:"tcp"`
-	Shell    []shell.Shell   `yaml:"shell"`
-	SSH      ssh.SSH         `yaml:"ssh"`
-	Client   []client.Client `yaml:"client"`
-	Notify   notify.Config   `yaml:"notify"`
-	Settings Settings        `yaml:"settings"`
-}
-
-// NewFromBytes read the configuration from bytes
-func NewFromBytes(y []byte) (Conf, error) {
-	c := Conf{
-		HTTP:  []http.HTTP{},
-		TCP:   []tcp.TCP{},
-		Shell: []shell.Shell{},
-		SSH: ssh.SSH{
-			Bastion: &ssh.BastionMap,
-			Servers: []ssh.Server{},
-		},
-		Client: []client.Client{},
-		Notify: notify.Config{},
-		Settings: Settings{
-			LogFile:    "",
-			LogLevel:   LogLevel{log.InfoLevel},
-			TimeFormat: "2006-01-02 15:04:05 UTC",
-			Probe: Probe{
-				Interval: time.Second * 60,
-				Timeout:  time.Second * 10,
-			},
-			Notify: Notify{
-				Retry: global.Retry{
-					Times:    3,
-					Interval: time.Second * 5,
-				},
-				Dry: false,
-			},
-			SLAReport: SLAReport{
-				Schedule: Daily,
-				Time:     "00:00",
-				Debug:    false,
-			},
-			logfile: nil,
-		},
-	}
-
-	y = []byte(os.ExpandEnv(string(y)))
-
-	err := yaml.Unmarshal(y, &c)
-	if err != nil {
-		log.Errorf("error: %v", err)
-		return c, err
-	}
-
-	c.initLog()
-	ssh.ParseAllBastionHost()
-
-	config = &c
-
-	log.Infoln("Load the configuration file successfully!")
-	if log.GetLevel() >= log.DebugLevel {
-		s, err := json.MarshalIndent(c, "", "  ")
-		if err != nil {
-			log.Debugf("%+v", c)
-		} else {
-			log.Debugf("%s", string(s))
-		}
-	}
-
-	return c, err
 }
 
 // New read the configuration from yaml

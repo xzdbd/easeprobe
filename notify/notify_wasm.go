@@ -1,3 +1,6 @@
+//go:build wasm
+// +build wasm
+
 /*
  * Copyright (c) 2022, MegaEase
  * All rights reserved.
@@ -18,17 +21,15 @@
 package notify
 
 import (
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
+	"github.com/megaease/easeprobe/notify/discord"
+	"github.com/megaease/easeprobe/notify/log"
+	"github.com/megaease/easeprobe/notify/slack"
 )
 
-// Notify is the configuration of the Notify
-type Notify interface {
-	Kind() string
-	Config(global.NotifySettings) error
-	Notify(probe.Result)
-	NotifyStat([]probe.Prober)
-
-	DryNotify(probe.Result)
-	DryNotifyStat([]probe.Prober)
+//Config is the notify configuration (Slim for WASM)
+type Config struct {
+	Log      []log.NotifyConfig      `yaml:"log"`
+	Slack    []slack.NotifyConfig    `yaml:"slack"`
+	Discord  []discord.NotifyConfig  `yaml:"discord"`
+	// Removed others to save space
 }
