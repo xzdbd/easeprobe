@@ -12,6 +12,8 @@ if (!globalThis.process) {
   globalThis.process = {
     env: {}
   };
+} else if (!globalThis.process.env) {
+  globalThis.process.env = {};
 }
 
 const go = new Go();
@@ -22,6 +24,11 @@ async function init(env) {
 
   // Populate process.env with Worker environment variables
   if (env) {
+    // Ensure env exists again just in case
+    if (!globalThis.process.env) {
+      globalThis.process.env = {};
+    }
+
     for (const [key, value] of Object.entries(env)) {
       if (typeof value === 'string') {
         globalThis.process.env[key] = value;
