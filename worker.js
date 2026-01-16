@@ -55,6 +55,26 @@ async function init(env) {
   go.run(inst);
 }
 
+// Convert config string to JSON string if it's YAML
+function parseConfig(str) {
+  if (!str) return str;
+  // If it starts with '{', assume it is JSON
+  if (str.trim().startsWith('{')) {
+    return str;
+  }
+  // Otherwise, try to parse as YAML using js-yaml (bundled)
+  if (typeof jsyaml !== 'undefined') {
+    try {
+      const obj = jsyaml.load(str);
+      return JSON.stringify(obj);
+    } catch (e) {
+      console.error("Failed to parse YAML config:", e);
+      return str; // Return original string, Go unmarshal might fail or report error
+    }
+  }
+  return str;
+}
+
 async function handleRequest(request, env) {
   try {
     await init(env);
@@ -74,7 +94,10 @@ async function handleRequest(request, env) {
       return new Response("Configuration not found. Set CONFIG_YAML env var or POST config.", { status: 500 });
     }
 
-    const result = await check(configStr, false); // false for dryRun
+    // Convert YAML to JSON if needed
+    const jsonConfigStr = parseConfig(configStr);
+
+    const result = await check(jsonConfigStr, false); // false for dryRun
 
     return new Response(JSON.stringify(result, null, 2), {
       headers: { 'content-type': 'application/json' },
@@ -98,7 +121,9 @@ async function handleScheduled(event, env) {
       return;
     }
 
-    const result = await check(configStr, false);
+    const jsonConfigStr = parseConfig(configStr);
+
+    const result = await check(jsonConfigStr, false);
 
     console.log(JSON.stringify(result));
 

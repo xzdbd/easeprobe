@@ -37,6 +37,7 @@ wasm:
 	GOOS=js GOARCH=wasm go build -o dist/main.wasm ./cmd/easeprobe-wasm/main.go
 	echo "import WASM_MODULE from './main.wasm';" > dist/worker.js
 	cat wasm_exec.js >> dist/worker.js
+	cat resources/js-yaml.min.js >> dist/worker.js
 	cat worker.js >> dist/worker.js
 	gzip -9 -c dist/main.wasm > dist/main.wasm.gz
 

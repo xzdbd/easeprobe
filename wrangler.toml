@@ -9,23 +9,15 @@ fallthrough = false
 
 [vars]
 CONFIG_YAML = """
-{
-  "http": [
-    {
-      "name": "Google",
-      "url": "https://www.google.com",
-      "interval": "1m",
-      "timeout": "5s"
-    }
-  ],
-  "tcp": [
-    {
-      "name": "xray-reality-jp",
-      "host": "154.19.186.11:20080",
-      "interval": "60s"
-    }
-  ]
-}
+http:
+  - name: Google
+    url: https://www.google.com
+    interval: 1m
+    timeout: 5s
+tcp:
+  - name: xray-reality-jp
+    host: 154.19.186.11:20080
+    interval: 60s
 """
 
 [triggers]
