@@ -74,8 +74,8 @@ func check(this js.Value, args []js.Value) interface{} {
 			// Run probes and notify
 			results := runProbes(confObj, probers, notifies, prevStatusMap)
 
-			// Build new status map
-			newStatusMap := make(map[string]probe.Status)
+			// Build new status map (convert to map[string]interface{} for js.ValueOf)
+			newStatusMap := make(map[string]interface{})
 			for _, res := range results {
 				newStatusMap[res.Name] = res.Status
 			}
