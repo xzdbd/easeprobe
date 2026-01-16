@@ -148,17 +148,19 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 			}
 
 			// Edge Triggered Logic
-			// 1. No change: Skip (except if StatusInit -> StatusUp, also skip usually)
+			// 1. No change: Skip
 			if res.PreStatus == res.Status {
 				log.Debugf("%s (%s) - Status no change [%s] == [%s], no notification.",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 				// Skip notification
-			} else if res.PreStatus == probe.StatusInit && res.Status == probe.StatusUp {
-				log.Debugf("%s (%s) - Initial Status [%s] == [%s], no notification.",
+			} else if res.PreStatus == probe.StatusInit {
+				// 2. Initial Run (Init -> Down or Init -> Up)
+				// User requested NO notification on start
+				log.Debugf("%s (%s) - Initial Status [%s] == [%s], skip notification (first run).",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
-				// Skip notification (Init -> Up)
+				// Skip notification
 			} else {
-				// Status Changed (Init->Down, Up->Down, Down->Up)
+				// 3. Status Changed (Up->Down, Down->Up)
 				log.Infof("%s (%s) - Status changed [%s] ==> [%s]",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 

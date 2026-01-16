@@ -169,7 +169,7 @@ func (r *Result) DoStat(d time.Duration) {
 func (r *Result) Title() string {
 	t := "%s Recovery"
 	if r.PreStatus == StatusInit {
-		t = "Monitoring %s"
+		t = "%s Monitoring" // Changed from "Monitoring %s" to match "[Name] [Action]" format
 	}
 	if r.Status != StatusUp {
 		t = "%s Failure"
