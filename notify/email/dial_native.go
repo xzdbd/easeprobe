@@ -1,5 +1,5 @@
-//go:build wasm
-// +build wasm
+//go:build !wasm
+// +build !wasm
 
 /*
  * Copyright (c) 2022, MegaEase
@@ -18,18 +18,14 @@
  * limitations under the License.
  */
 
-package notify
+package email
 
 import (
-	"github.com/megaease/easeprobe/notify/bark"
-	"github.com/megaease/easeprobe/notify/email"
-	"github.com/megaease/easeprobe/notify/log"
+	"crypto/tls"
+	"net"
 )
 
-//Config is the notify configuration (Slim for WASM)
-type Config struct {
-	Log      []log.NotifyConfig      `yaml:"log" json:"log"`
-	Email    []email.NotifyConfig    `yaml:"email" json:"email"`
-	Bark     []bark.NotifyConfig     `yaml:"bark" json:"bark"`
-	// Removed others to save space
+// Dial dials using tls.Dial for native builds
+func Dial(network, addr string, config *tls.Config) (net.Conn, error) {
+	return tls.Dial(network, addr, config)
 }

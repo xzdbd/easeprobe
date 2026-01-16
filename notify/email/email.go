@@ -77,7 +77,8 @@ func (c *NotifyConfig) SendMail(subject string, message string) error {
 
 	auth := smtp.PlainAuth("", c.User, c.Pass, host)
 
-	conn, err := tls.Dial("tcp", c.Server, nil)
+	// Use helper Dial function (switched by build tags)
+	conn, err := Dial("tcp", c.Server, &tls.Config{InsecureSkipVerify: true, ServerName: host})
 	if err != nil {
 		return err
 	}
