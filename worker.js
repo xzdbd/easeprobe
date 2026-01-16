@@ -22,6 +22,7 @@ if (!globalThis.process) {
 
 // Implement tcp check function for WASM
 globalThis.easeprobe_tcp_check = async function(host, timeout) {
+  console.log(`[JS] Checking TCP connection to ${host} with timeout ${timeout}ms`);
   try {
     const socket = connect(host);
     const writer = socket.writable.getWriter();
@@ -43,11 +44,13 @@ globalThis.easeprobe_tcp_check = async function(host, timeout) {
     ]);
 
     // Connection successful
+    console.log(`[JS] TCP connection to ${host} successful`);
     // Close the socket
     await socket.close();
 
     return "TCP Connection Established Successfully!";
   } catch (e) {
+    console.error(`[JS] TCP connection to ${host} failed: ${e.message || e}`);
     throw e.message || e.toString();
   }
 };

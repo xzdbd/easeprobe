@@ -29,12 +29,13 @@ import (
 
 // DoProbe return the checking result
 func (t *TCP) DoProbe() (bool, string) {
+	log.Debugf("Native TCP Probe checking: %s", t.Host)
 	conn, err := net.DialTimeout("tcp", t.Host, t.Timeout())
 	status := true
 	message := ""
 	if err != nil {
 		message = fmt.Sprintf("Error: %v", err)
-		log.Errorf("error: %v", err)
+		log.Errorf("Native TCP Error: %v", err)
 		status = false
 	} else {
 		message = "TCP Connection Established Successfully!"

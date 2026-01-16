@@ -29,6 +29,7 @@ import (
 
 // DoProbe return the checking result
 func (t *TCP) DoProbe() (bool, string) {
+	log.Debugf("WASM TCP Probe checking: %s", t.Host)
 	checkFunc := js.Global().Get("easeprobe_tcp_check")
 	if checkFunc.IsUndefined() || checkFunc.IsNull() {
 		return false, "Error: easeprobe_tcp_check function not found in JS environment"
@@ -73,7 +74,7 @@ func (t *TCP) DoProbe() (bool, string) {
 	case msg := <-resultChan:
 		return true, msg
 	case err := <-errorChan:
-		log.Errorf("error: %s", err)
+		log.Errorf("WASM TCP Error: %s", err)
 		return false, fmt.Sprintf("Error: %s", err)
 	}
 }
