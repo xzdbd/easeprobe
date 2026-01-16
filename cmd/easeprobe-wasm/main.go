@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sync"
 	"syscall/js"
+	"time"
 
 	"github.com/megaease/easeprobe/conf"
 	"github.com/megaease/easeprobe/global"
@@ -20,6 +21,12 @@ func main() {
 	c := make(chan struct{}, 0)
 	js.Global().Set("check", js.FuncOf(check))
 	<-c
+}
+
+// ProbeState persists the state of a probe between WASM invocations
+type ProbeState struct {
+	Status        string    `json:"status"`
+	LastProbeTime time.Time `json:"last_probe_time"`
 }
 
 func check(this js.Value, args []js.Value) interface{} {
@@ -37,12 +44,10 @@ func check(this js.Value, args []js.Value) interface{} {
 	}
 
 	// previousStatus argument (JSON string)
-	var prevStatusMap map[string]probe.Status
+	// Map ProbeName -> ProbeState
+	prevStatusMap := make(map[string]ProbeState)
 	if len(args) > 2 && args[2].Type() == js.TypeString {
 		json.Unmarshal([]byte(args[2].String()), &prevStatusMap)
-	}
-	if prevStatusMap == nil {
-		prevStatusMap = make(map[string]probe.Status)
 	}
 
 	// Create a Promise
@@ -72,14 +77,7 @@ func check(this js.Value, args []js.Value) interface{} {
 			notifies := confObj.AllNotifiers()
 
 			// Run probes and notify
-			results := runProbes(confObj, probers, notifies, prevStatusMap)
-
-			// Build new status map (convert to map[string]interface{} for js.ValueOf)
-			newStatusMap := make(map[string]interface{})
-			for _, res := range results {
-				// Convert probe.Status (named int) to string explicitly because js.ValueOf panics on named types
-				newStatusMap[res.Name] = res.Status.String()
-			}
+			results, newStatusMap := runProbes(confObj, probers, notifies, prevStatusMap)
 
 			// Convert results to []interface{} to return to JS
 			var jsResults []interface{}
@@ -90,10 +88,20 @@ func check(this js.Value, args []js.Value) interface{} {
 				jsResults = append(jsResults, m)
 			}
 
+			// Convert newStatusMap to map[string]interface{} for js.ValueOf compatibility
+			jsStatusMap := make(map[string]interface{})
+			for k, v := range newStatusMap {
+				// Marshal to ensure clean JSON object structure for JS
+				b, _ := json.Marshal(v)
+				var m map[string]interface{}
+				json.Unmarshal(b, &m)
+				jsStatusMap[k] = m
+			}
+
 			// Return object { results: [...], status: {...} }
 			output := map[string]interface{}{
 				"results": jsResults,
-				"status":  newStatusMap,
+				"status":  jsStatusMap,
 			}
 
 			resolve.Invoke(js.ValueOf(output))
@@ -102,8 +110,14 @@ func check(this js.Value, args []js.Value) interface{} {
 	}))
 }
 
-func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, prevStatus map[string]probe.Status) []probe.Result {
+func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, prevStatus map[string]ProbeState) ([]probe.Result, map[string]ProbeState) {
 	var results []probe.Result
+	// newStatusMap starts as a copy of prevStatus to preserve state of skipped probes
+	newStatusMap := make(map[string]ProbeState)
+	for k, v := range prevStatus {
+		newStatusMap[k] = v
+	}
+
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
@@ -125,6 +139,8 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 		}
 	}
 
+	now := time.Now()
+
 	// Run Probes
 	for _, p := range probers {
 		if err := p.Config(gProbeConf); err != nil {
@@ -132,20 +148,35 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 			continue
 		}
 
+		name := p.Result().Name
+
+		// Check Interval
+		interval := p.Interval()
+		if state, ok := prevStatus[name]; ok {
+			// If LastProbeTime is valid and interval has not passed, skip
+			if !state.LastProbeTime.IsZero() && now.Sub(state.LastProbeTime) < interval {
+				log.Debugf("Skipping probe %s: interval %v not reached (last run: %v)", name, interval, state.LastProbeTime)
+				continue
+			}
+		}
+
 		wg.Add(1)
-		go func(p probe.Prober) {
+		go func(p probe.Prober, name string) {
 			defer wg.Done()
 
 			// Run probe
 			res := p.Probe()
 			log.Infof("%s: %s", p.Kind(), res.DebugJSON())
 
-			// Patch PreStatus from persistence
-			if status, ok := prevStatus[res.Name]; ok {
-				res.PreStatus = status
-			} else {
-				res.PreStatus = probe.StatusInit
+			// Get Previous Status
+			var preStatus probe.Status = probe.StatusInit
+			if state, ok := prevStatus[name]; ok {
+				// Convert string status back to probe.Status
+				var s probe.Status
+				s.Status(state.Status)
+				preStatus = s
 			}
+			res.PreStatus = preStatus
 
 			// Edge Triggered Logic
 			// 1. No change: Skip
@@ -154,13 +185,12 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 				// Skip notification
 			} else if res.PreStatus == probe.StatusInit {
-				// 2. Initial Run (Init -> Down or Init -> Up)
-				// User requested NO notification on start
+				// 2. Initial Run
 				log.Debugf("%s (%s) - Initial Status [%s] == [%s], skip notification (first run).",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 				// Skip notification
 			} else {
-				// 3. Status Changed (Up->Down, Down->Up)
+				// 3. Status Changed
 				log.Infof("%s (%s) - Status changed [%s] ==> [%s]",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 
@@ -176,10 +206,14 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 
 			mu.Lock()
 			results = append(results, res)
+			newStatusMap[name] = ProbeState{
+				Status:        res.Status.String(),
+				LastProbeTime: now,
+			}
 			mu.Unlock()
-		}(p)
+		}(p, name)
 	}
 
 	wg.Wait()
-	return results
+	return results, newStatusMap
 }
