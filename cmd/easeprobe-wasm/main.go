@@ -36,6 +36,15 @@ func check(this js.Value, args []js.Value) interface{} {
 		dryRun = true
 	}
 
+	// previousStatus argument (JSON string)
+	var prevStatusMap map[string]probe.Status
+	if len(args) > 2 && args[2].Type() == js.TypeString {
+		json.Unmarshal([]byte(args[2].String()), &prevStatusMap)
+	}
+	if prevStatusMap == nil {
+		prevStatusMap = make(map[string]probe.Status)
+	}
+
 	// Create a Promise
 	promiseConstructor := js.Global().Get("Promise")
 	return promiseConstructor.New(js.FuncOf(func(this js.Value, pArgs []js.Value) interface{} {
@@ -62,26 +71,37 @@ func check(this js.Value, args []js.Value) interface{} {
 			probers := confObj.AllProbers()
 			notifies := confObj.AllNotifiers()
 
-			// This is now running in a goroutine, so it won't block the JS event loop
-			results := runProbes(confObj, probers, notifies)
+			// Run probes and notify
+			results := runProbes(confObj, probers, notifies, prevStatusMap)
+
+			// Build new status map
+			newStatusMap := make(map[string]probe.Status)
+			for _, res := range results {
+				newStatusMap[res.Name] = res.Status
+			}
 
 			// Convert results to []interface{} to return to JS
 			var jsResults []interface{}
 			for _, res := range results {
-				// Marshal to map to make it easy to pass to JS
 				b, _ := json.Marshal(res)
 				var m map[string]interface{}
 				json.Unmarshal(b, &m)
 				jsResults = append(jsResults, m)
 			}
 
-			resolve.Invoke(js.ValueOf(jsResults))
+			// Return object { results: [...], status: {...} }
+			output := map[string]interface{}{
+				"results": jsResults,
+				"status":  newStatusMap,
+			}
+
+			resolve.Invoke(js.ValueOf(output))
 		}()
 		return nil
 	}))
 }
 
-func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify) []probe.Result {
+func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, prevStatus map[string]probe.Status) []probe.Result {
 	var results []probe.Result
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -114,15 +134,40 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify) []
 		wg.Add(1)
 		go func(p probe.Prober) {
 			defer wg.Done()
+
+			// Run probe
 			res := p.Probe()
 			log.Infof("%s: %s", p.Kind(), res.DebugJSON())
 
-			// Notify
-			for _, n := range notifies {
-				if c.Settings.Notify.Dry {
-					n.DryNotify(res)
-				} else {
-					n.Notify(res)
+			// Patch PreStatus from persistence
+			if status, ok := prevStatus[res.Name]; ok {
+				res.PreStatus = status
+			} else {
+				res.PreStatus = probe.StatusInit
+			}
+
+			// Edge Triggered Logic
+			// 1. No change: Skip (except if StatusInit -> StatusUp, also skip usually)
+			if res.PreStatus == res.Status {
+				log.Debugf("%s (%s) - Status no change [%s] == [%s], no notification.",
+					res.Name, res.Endpoint, res.PreStatus, res.Status)
+				// Skip notification
+			} else if res.PreStatus == probe.StatusInit && res.Status == probe.StatusUp {
+				log.Debugf("%s (%s) - Initial Status [%s] == [%s], no notification.",
+					res.Name, res.Endpoint, res.PreStatus, res.Status)
+				// Skip notification (Init -> Up)
+			} else {
+				// Status Changed (Init->Down, Up->Down, Down->Up)
+				log.Infof("%s (%s) - Status changed [%s] ==> [%s]",
+					res.Name, res.Endpoint, res.PreStatus, res.Status)
+
+				// Notify
+				for _, n := range notifies {
+					if c.Settings.Notify.Dry {
+						n.DryNotify(res)
+					} else {
+						n.Notify(res)
+					}
 				}
 			}
 
