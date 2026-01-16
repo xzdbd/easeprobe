@@ -194,12 +194,22 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 				log.Infof("%s (%s) - Status changed [%s] ==> [%s]",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 
-				// Notify
-				for _, n := range notifies {
-					if c.Settings.Notify.Dry {
-						n.DryNotify(res)
-					} else {
-						n.Notify(res)
+				// Determine if we should notify
+				shouldNotify := true
+				if res.Status == probe.StatusUp {
+					// User requested: "only trigger notify when the status is not success"
+					// So if status is UP (Recovery), skip notification
+					log.Infof("%s (%s) - Status recovered, skipping notification per configuration.", res.Name, res.Endpoint)
+					shouldNotify = false
+				}
+
+				if shouldNotify {
+					for _, n := range notifies {
+						if c.Settings.Notify.Dry {
+							n.DryNotify(res)
+						} else {
+							n.Notify(res)
+						}
 					}
 				}
 			}
