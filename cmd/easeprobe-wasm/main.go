@@ -179,18 +179,12 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 			res.PreStatus = preStatus
 
 			// Edge Triggered Logic
-			// 1. No change: Skip
 			if res.PreStatus == res.Status {
 				log.Debugf("%s (%s) - Status no change [%s] == [%s], no notification.",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 				// Skip notification
-			} else if res.PreStatus == probe.StatusInit {
-				// 2. Initial Run
-				log.Debugf("%s (%s) - Initial Status [%s] == [%s], skip notification (first run).",
-					res.Name, res.Endpoint, res.PreStatus, res.Status)
-				// Skip notification
 			} else {
-				// 3. Status Changed
+				// Status Changed (Init->Down, Init->Up, Up->Down, Down->Up)
 				log.Infof("%s (%s) - Status changed [%s] ==> [%s]",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 
@@ -198,8 +192,8 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 				shouldNotify := true
 				if res.Status == probe.StatusUp {
 					// User requested: "only trigger notify when the status is not success"
-					// So if status is UP (Recovery), skip notification
-					log.Infof("%s (%s) - Status recovered, skipping notification per configuration.", res.Name, res.Endpoint)
+					// So if status is UP (Recovery or Init->Up), skip notification
+					log.Infof("%s (%s) - Status is success, skipping notification per configuration.", res.Name, res.Endpoint)
 					shouldNotify = false
 				}
 
