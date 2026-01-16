@@ -77,7 +77,8 @@ func check(this js.Value, args []js.Value) interface{} {
 			// Build new status map (convert to map[string]interface{} for js.ValueOf)
 			newStatusMap := make(map[string]interface{})
 			for _, res := range results {
-				newStatusMap[res.Name] = res.Status
+				// Convert probe.Status (named int) to string explicitly because js.ValueOf panics on named types
+				newStatusMap[res.Name] = res.Status.String()
 			}
 
 			// Convert results to []interface{} to return to JS
