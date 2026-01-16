@@ -25,12 +25,49 @@ import (
 	"os"
 	"time"
 
-	"github.com/megaease/easeprobe/global"
 	"github.com/megaease/easeprobe/notify"
+	"github.com/megaease/easeprobe/probe"
 	"github.com/megaease/easeprobe/probe/http"
 	"github.com/megaease/easeprobe/probe/tcp"
 	log "github.com/sirupsen/logrus"
 )
+
+// Retry is the settings of notification retry
+// Redefined for JSON support (ConfigDuration)
+type Retry struct {
+	Times    int                  `json:"times"`
+	Interval probe.ConfigDuration `json:"interval"`
+}
+
+// Notify is the settings of notification
+type Notify struct {
+	Retry Retry `yaml:"retry" json:"retry"`
+	Dry   bool  `yaml:"dry" json:"dry"`
+}
+
+// Probe is the settings of prober
+type Probe struct {
+	Interval probe.ConfigDuration `yaml:"interval" json:"interval"`
+	Timeout  probe.ConfigDuration `yaml:"timeout" json:"timeout"`
+}
+
+// SLAReport is the settings for SLA report
+type SLAReport struct {
+	Schedule Schedule `yaml:"schedule" json:"schedule"`
+	Time     string   `yaml:"time" json:"time"`
+	Debug    bool     `yaml:"debug" json:"debug"`
+}
+
+// Settings is the EaseProbe configuration
+type Settings struct {
+	LogFile    string    `yaml:"logfile" json:"logfile"`
+	LogLevel   LogLevel  `yaml:"loglevel" json:"loglevel"`
+	TimeFormat string    `yaml:"timeformat" json:"timeformat"`
+	Probe      Probe     `yaml:"probe" json:"probe"`
+	Notify     Notify    `yaml:"notify" json:"notify"`
+	SLAReport  SLAReport `yaml:"sla" json:"sla"`
+	logfile    *os.File  `yaml:"-" json:"-"`
+}
 
 // Conf is Probe configuration (Slim for WASM)
 type Conf struct {
@@ -52,13 +89,13 @@ func NewFromBytes(y []byte) (Conf, error) {
 			LogLevel:   LogLevel{log.InfoLevel},
 			TimeFormat: "2006-01-02 15:04:05 UTC",
 			Probe: Probe{
-				Interval: time.Second * 60,
-				Timeout:  time.Second * 10,
+				Interval: probe.ConfigDuration{time.Second * 60},
+				Timeout:  probe.ConfigDuration{time.Second * 10},
 			},
 			Notify: Notify{
-				Retry: global.Retry{
+				Retry: Retry{
 					Times:    3,
-					Interval: time.Second * 5,
+					Interval: probe.ConfigDuration{time.Second * 5},
 				},
 				Dry: false,
 			},

@@ -123,13 +123,16 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 
 	gProbeConf := global.ProbeSettings{
 		TimeFormat: c.Settings.TimeFormat,
-		Interval:   c.Settings.Probe.Interval,
-		Timeout:    c.Settings.Probe.Timeout,
+		Interval:   c.Settings.Probe.Interval.Duration, // Use .Duration because ConfigDuration in WASM
+		Timeout:    c.Settings.Probe.Timeout.Duration, // Use .Duration because ConfigDuration in WASM
 	}
 
 	gNotifyConf := global.NotifySettings{
 		TimeFormat: c.Settings.TimeFormat,
-		Retry:      c.Settings.Notify.Retry,
+		Retry:      global.Retry{
+			Times: c.Settings.Notify.Retry.Times,
+			Interval: c.Settings.Notify.Retry.Interval.Duration, // Use .Duration
+		},
 	}
 
 	// Config Notifiers
@@ -184,7 +187,7 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 				// Skip notification
 			} else {
-				// Status Changed (Init->Down, Init->Up, Up->Down, Down->Up)
+				// Status Changed
 				log.Infof("%s (%s) - Status changed [%s] ==> [%s]",
 					res.Name, res.Endpoint, res.PreStatus, res.Status)
 
@@ -192,7 +195,7 @@ func runProbes(c conf.Conf, probers []probe.Prober, notifies []notify.Notify, pr
 				shouldNotify := true
 				if res.Status == probe.StatusUp {
 					// User requested: "only trigger notify when the status is not success"
-					// So if status is UP (Recovery or Init->Up), skip notification
+					// So if status is UP (Recovery), skip notification
 					log.Infof("%s (%s) - Status is success, skipping notification per configuration.", res.Name, res.Endpoint)
 					shouldNotify = false
 				}

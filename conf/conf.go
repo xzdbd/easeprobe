@@ -22,9 +22,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
-	"github.com/megaease/easeprobe/global"
 	"github.com/megaease/easeprobe/notify"
 	"github.com/megaease/easeprobe/probe"
 	log "github.com/sirupsen/logrus"
@@ -48,6 +46,15 @@ func (l *LogLevel) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&level); err != nil {
 		return err
 	}
+	return l.parse(level)
+}
+
+// UnmarshalJSON is unmarshal the debug level
+func (l *LogLevel) UnmarshalJSON(b []byte) (err error) {
+	return l.parse(strings.Trim(string(b), `"`))
+}
+
+func (l *LogLevel) parse(level string) error {
 	switch strings.ToLower(level) {
 	case "debug":
 		l.Level = log.DebugLevel
@@ -82,6 +89,15 @@ func (s *Schedule) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&level); err != nil {
 		return err
 	}
+	return s.parse(level)
+}
+
+// UnmarshalJSON is unmarshal the debug level
+func (s *Schedule) UnmarshalJSON(b []byte) (err error) {
+	return s.parse(strings.Trim(string(b), `"`))
+}
+
+func (s *Schedule) parse(level string) error {
 	switch strings.ToLower(level) {
 	case "hourly":
 		*s = Hourly
@@ -95,36 +111,6 @@ func (s *Schedule) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		*s = None
 	}
 	return nil
-}
-
-// Notify is the settings of notification
-type Notify struct {
-	Retry global.Retry `yaml:"retry"`
-	Dry   bool         `yaml:"dry"`
-}
-
-// Probe is the settings of prober
-type Probe struct {
-	Interval time.Duration `yaml:"interval"`
-	Timeout  time.Duration `yaml:"timeout"`
-}
-
-// SLAReport is the settings for SLA report
-type SLAReport struct {
-	Schedule Schedule `yaml:"schedule"`
-	Time     string   `yaml:"time"`
-	Debug    bool     `yaml:"debug"`
-}
-
-// Settings is the EaseProbe configuration
-type Settings struct {
-	LogFile    string    `yaml:"logfile"`
-	LogLevel   LogLevel  `yaml:"loglevel"`
-	TimeFormat string    `yaml:"timeformat"`
-	Probe      Probe     `yaml:"probe"`
-	Notify     Notify    `yaml:"notify"`
-	SLAReport  SLAReport `yaml:"sla"`
-	logfile    *os.File  `yaml:"-"`
 }
 
 // New read the configuration from yaml
