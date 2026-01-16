@@ -1,3 +1,7 @@
+// Import sockets from cloudflare:sockets
+// Note: This requires the "cloudflare:sockets" capability.
+import { connect } from 'cloudflare:sockets';
+
 export default {
   async fetch(request, env, ctx) {
     return handleRequest(request, env);
@@ -15,6 +19,38 @@ if (!globalThis.process) {
 } else if (!globalThis.process.env) {
   globalThis.process.env = {};
 }
+
+// Implement tcp check function for WASM
+globalThis.easeprobe_tcp_check = async function(host, timeout) {
+  try {
+    const socket = connect(host);
+    const writer = socket.writable.getWriter();
+    const reader = socket.readable.getReader();
+
+    // We just want to check connection.
+    // If connect() doesn't throw, we assume connection is established?
+    // Actually connect() returns a Socket object immediately. The connection is established when we try to write/read or via opened promise?
+    // Cloudflare docs say: "connect() returns a Socket".
+    // "socket.opened" is a promise that resolves when the socket is ready.
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Connection timed out")), timeout)
+    );
+
+    await Promise.race([
+      socket.opened,
+      timeoutPromise
+    ]);
+
+    // Connection successful
+    // Close the socket
+    await socket.close();
+
+    return "TCP Connection Established Successfully!";
+  } catch (e) {
+    throw e.message || e.toString();
+  }
+};
 
 const go = new Go();
 let inst;

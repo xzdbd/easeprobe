@@ -1,3 +1,6 @@
+//go:build !wasm
+// +build !wasm
+
 /*
  * Copyright (c) 2022, MegaEase
  * All rights reserved.
@@ -18,24 +21,24 @@
 package tcp
 
 import (
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/base"
+	"fmt"
+	"net"
+
 	log "github.com/sirupsen/logrus"
 )
 
-// TCP implements a config for TCP
-type TCP struct {
-	base.DefaultOptions `yaml:",inline"`
-	Host                string `yaml:"host" json:"host"`
-}
-
-// Config HTTP Config Object
-func (t *TCP) Config(gConf global.ProbeSettings) error {
-	kind := "tcp"
-	tag := ""
-	name := t.ProbeName
-	t.DefaultOptions.Config(gConf, kind, tag, name, t.Host, t.DoProbe)
-
-	log.Debugf("[%s] configuration: %+v, %+v", t.ProbeKind, t, t.Result())
-	return nil
+// DoProbe return the checking result
+func (t *TCP) DoProbe() (bool, string) {
+	conn, err := net.DialTimeout("tcp", t.Host, t.Timeout())
+	status := true
+	message := ""
+	if err != nil {
+		message = fmt.Sprintf("Error: %v", err)
+		log.Errorf("error: %v", err)
+		status = false
+	} else {
+		message = "TCP Connection Established Successfully!"
+		conn.Close()
+	}
+	return status, message
 }
