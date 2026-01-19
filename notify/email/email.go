@@ -33,10 +33,10 @@ import (
 // NotifyConfig is the email notification configuration
 type NotifyConfig struct {
 	base.DefaultNotify `yaml:",inline"`
-	Server             string `yaml:"server"`
-	User               string `yaml:"username"`
-	Pass               string `yaml:"password"`
-	To                 string `yaml:"to"`
+	Server             string `yaml:"server" json:"server"`
+	User               string `yaml:"username" json:"username"`
+	Pass               string `yaml:"password" json:"password"`
+	To                 string `yaml:"to" json:"to"`
 }
 
 // Kind return the type of Notify
@@ -77,7 +77,8 @@ func (c *NotifyConfig) SendMail(subject string, message string) error {
 
 	auth := smtp.PlainAuth("", c.User, c.Pass, host)
 
-	conn, err := tls.Dial("tcp", c.Server, nil)
+	// Use helper Dial function (switched by build tags)
+	conn, err := Dial("tcp", c.Server, &tls.Config{InsecureSkipVerify: true, ServerName: host})
 	if err != nil {
 		return err
 	}

@@ -1,3 +1,6 @@
+//go:build !wasm
+// +build !wasm
+
 /*
  * Copyright (c) 2022, MegaEase
  * All rights reserved.
@@ -15,20 +18,14 @@
  * limitations under the License.
  */
 
-package notify
+package email
 
 import (
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
+	"crypto/tls"
+	"net"
 )
 
-// Notify is the configuration of the Notify
-type Notify interface {
-	Kind() string
-	Config(global.NotifySettings) error
-	Notify(probe.Result)
-	NotifyStat([]probe.Prober)
-
-	DryNotify(probe.Result)
-	DryNotifyStat([]probe.Prober)
+// Dial dials using tls.Dial for native builds
+func Dial(network, addr string, config *tls.Config) (net.Conn, error) {
+	return tls.Dial(network, addr, config)
 }

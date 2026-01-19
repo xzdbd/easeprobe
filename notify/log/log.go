@@ -31,7 +31,7 @@ import (
 // NotifyConfig is the configuration of the Notify
 type NotifyConfig struct {
 	base.DefaultNotify `yaml:",inline"`
-	File               string `yaml:"file"`
+	File               string `yaml:"file" json:"file"`
 }
 
 // Kind return the type of Notify
@@ -80,5 +80,5 @@ func (c *NotifyConfig) NotifyStat(probers []probe.Prober) {
 	for _, p := range probers {
 		log.Println(p.Result())
 	}
-	logrus.Infoln("Logged the Statstics into %s!", c.File)
+	logrus.Infof("Logged the Statstics into %s!", c.File)
 }

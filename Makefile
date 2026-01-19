@@ -1,5 +1,5 @@
 SHELL:=/bin/sh
-.PHONY: all build test clean
+.PHONY: all build test clean wasm
 
 export GO111MODULE=on
 
@@ -31,6 +31,19 @@ ${TARGET}: ${SOURCE}
 
 build: all
 
+resources/js-yaml.min.js:
+	curl -o resources/js-yaml.min.js https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js
+
+wasm: resources/js-yaml.min.js
+	mkdir -p dist
+	cp $$(go env GOROOT)/lib/wasm/wasm_exec.js .
+	GOOS=js GOARCH=wasm go build -o dist/main.wasm ./cmd/easeprobe-wasm/main.go
+	echo "import WASM_MODULE from './main.wasm';" > dist/worker.js
+	cat wasm_exec.js >> dist/worker.js
+	cat resources/js-yaml.min.js >> dist/worker.js
+	cat worker.js >> dist/worker.js
+	gzip -9 -c dist/main.wasm > dist/main.wasm.gz
+
 test:
 	go test -race -count=1 ./...
 
@@ -38,4 +51,4 @@ docker:
 	sudo DOCKER_BUILDKIT=1 docker build -t megaease/easeprobe -f ${MKFILE_DIR}/resources/Dockerfile ${MKFILE_DIR}
 
 clean:
-	@rm -rf ${MKFILE_DIR}/build
+	@rm -rf ${MKFILE_DIR}/build dist wasm_exec.js resources/js-yaml.min.js

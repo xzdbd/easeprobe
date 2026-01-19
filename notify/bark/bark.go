@@ -63,8 +63,8 @@ type PushResponse struct {
 // NotifyConfig is the bark notification configuration
 type NotifyConfig struct {
 	base.DefaultNotify `yaml:",inline"`
-	Key                string `yaml:"key"`
-	ServerUrl          string `yaml:"server"`
+	Key                string `yaml:"key" json:"key"`
+	ServerUrl          string `yaml:"server" json:"server"`
 	PushOptions        `yaml:",inline"`
 }
 
@@ -79,7 +79,7 @@ func (c *NotifyConfig) Config(gConf global.NotifySettings) error {
 	c.Format = report.Text
 	c.SendFunc = c.Push
 	c.DefaultNotify.Config(gConf)
-	log.Debugf("Notification [%s] - [%s] configuration: %+v", c.MyKind, c.Name)
+	log.Debugf("Notification [%s] - [%s] configuration: %+v", c.MyKind, c.Name, c)
 	return nil
 }
 

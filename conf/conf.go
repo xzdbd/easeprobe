@@ -18,23 +18,14 @@
 package conf
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
-	"github.com/megaease/easeprobe/global"
 	"github.com/megaease/easeprobe/notify"
 	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/client"
-	"github.com/megaease/easeprobe/probe/http"
-	"github.com/megaease/easeprobe/probe/shell"
-	"github.com/megaease/easeprobe/probe/ssh"
-	"github.com/megaease/easeprobe/probe/tcp"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 var config *Conf
@@ -55,6 +46,15 @@ func (l *LogLevel) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&level); err != nil {
 		return err
 	}
+	return l.parse(level)
+}
+
+// UnmarshalJSON is unmarshal the debug level
+func (l *LogLevel) UnmarshalJSON(b []byte) (err error) {
+	return l.parse(strings.Trim(string(b), `"`))
+}
+
+func (l *LogLevel) parse(level string) error {
 	switch strings.ToLower(level) {
 	case "debug":
 		l.Level = log.DebugLevel
@@ -75,7 +75,6 @@ func (l *LogLevel) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Schedule is the schedule.
 type Schedule int
 
-//
 const (
 	Hourly Schedule = iota
 	Daily
@@ -90,6 +89,15 @@ func (s *Schedule) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&level); err != nil {
 		return err
 	}
+	return s.parse(level)
+}
+
+// UnmarshalJSON is unmarshal the debug level
+func (s *Schedule) UnmarshalJSON(b []byte) (err error) {
+	return s.parse(strings.Trim(string(b), `"`))
+}
+
+func (s *Schedule) parse(level string) error {
 	switch strings.ToLower(level) {
 	case "hourly":
 		*s = Hourly
@@ -105,112 +113,14 @@ func (s *Schedule) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// Notify is the settings of notification
-type Notify struct {
-	Retry global.Retry `yaml:"retry"`
-	Dry   bool         `yaml:"dry"`
-}
-
-// Probe is the settings of prober
-type Probe struct {
-	Interval time.Duration `yaml:"interval"`
-	Timeout  time.Duration `yaml:"timeout"`
-}
-
-// SLAReport is the settings for SLA report
-type SLAReport struct {
-	Schedule Schedule `yaml:"schedule"`
-	Time     string   `yaml:"time"`
-	Debug    bool     `yaml:"debug"`
-}
-
-// Settings is the EaseProbe configuration
-type Settings struct {
-	LogFile    string    `yaml:"logfile"`
-	LogLevel   LogLevel  `yaml:"loglevel"`
-	TimeFormat string    `yaml:"timeformat"`
-	Probe      Probe     `yaml:"probe"`
-	Notify     Notify    `yaml:"notify"`
-	SLAReport  SLAReport `yaml:"sla"`
-	logfile    *os.File  `yaml:"-"`
-}
-
-// Conf is Probe configuration
-type Conf struct {
-	HTTP     []http.HTTP     `yaml:"http"`
-	TCP      []tcp.TCP       `yaml:"tcp"`
-	Shell    []shell.Shell   `yaml:"shell"`
-	SSH      ssh.SSH         `yaml:"ssh"`
-	Client   []client.Client `yaml:"client"`
-	Notify   notify.Config   `yaml:"notify"`
-	Settings Settings        `yaml:"settings"`
-}
-
 // New read the configuration from yaml
 func New(conf *string) (Conf, error) {
-	c := Conf{
-		HTTP:  []http.HTTP{},
-		TCP:   []tcp.TCP{},
-		Shell: []shell.Shell{},
-		SSH: ssh.SSH{
-			Bastion: &ssh.BastionMap,
-			Servers: []ssh.Server{},
-		},
-		Client: []client.Client{},
-		Notify: notify.Config{},
-		Settings: Settings{
-			LogFile:    "",
-			LogLevel:   LogLevel{log.InfoLevel},
-			TimeFormat: "2006-01-02 15:04:05 UTC",
-			Probe: Probe{
-				Interval: time.Second * 60,
-				Timeout:  time.Second * 10,
-			},
-			Notify: Notify{
-				Retry: global.Retry{
-					Times:    3,
-					Interval: time.Second * 5,
-				},
-				Dry: false,
-			},
-			SLAReport: SLAReport{
-				Schedule: Daily,
-				Time:     "00:00",
-				Debug:    false,
-			},
-			logfile: nil,
-		},
-	}
 	y, err := ioutil.ReadFile(*conf)
 	if err != nil {
 		log.Errorf("error: %v ", err)
-		return c, err
+		return Conf{}, err
 	}
-
-	y = []byte(os.ExpandEnv(string(y)))
-
-	err = yaml.Unmarshal(y, &c)
-	if err != nil {
-		log.Errorf("error: %v", err)
-		return c, err
-	}
-
-	c.initLog()
-	ssh.ParseAllBastionHost()
-
-	config = &c
-
-	log.Infoln("Load the configuration file successfully!")
-	if log.GetLevel() >= log.DebugLevel {
-		s, err := json.MarshalIndent(c, "", "  ")
-		if err != nil {
-			log.Debugf("%+v", c)
-		} else {
-			log.Debugf("%s", string(s))
-		}
-	}
-
-	return c, err
+	return NewFromBytes(y)
 }
 
 func (conf *Conf) initLog() {
@@ -220,14 +130,18 @@ func (conf *Conf) initLog() {
 		log.SetLevel(log.InfoLevel)
 	} else {
 		// open a file
-		f, err := os.OpenFile(conf.Settings.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0660)
-		if err != nil {
-			log.Warnf("Cannot open log file: %v", err)
-			log.Infoln("Using Standard Output as the log output...")
-			log.SetOutput(os.Stdout)
+		if conf.Settings.LogFile != "" {
+			f, err := os.OpenFile(conf.Settings.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0660)
+			if err != nil {
+				log.Warnf("Cannot open log file: %v", err)
+				log.Infoln("Using Standard Output as the log output...")
+				log.SetOutput(os.Stdout)
+			} else {
+				conf.Settings.logfile = f
+				log.SetOutput(f)
+			}
 		} else {
-			conf.Settings.logfile = f
-			log.SetOutput(f)
+			log.SetOutput(os.Stdout)
 		}
 		log.SetLevel(conf.Settings.LogLevel.Level)
 	}

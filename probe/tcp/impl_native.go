@@ -1,3 +1,6 @@
+//go:build !wasm
+// +build !wasm
+
 /*
  * Copyright (c) 2022, MegaEase
  * All rights reserved.
@@ -15,20 +18,28 @@
  * limitations under the License.
  */
 
-package notify
+package tcp
 
 import (
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
+	"fmt"
+	"net"
+
+	log "github.com/sirupsen/logrus"
 )
 
-// Notify is the configuration of the Notify
-type Notify interface {
-	Kind() string
-	Config(global.NotifySettings) error
-	Notify(probe.Result)
-	NotifyStat([]probe.Prober)
-
-	DryNotify(probe.Result)
-	DryNotifyStat([]probe.Prober)
+// DoProbe return the checking result
+func (t *TCP) DoProbe() (bool, string) {
+	log.Debugf("Native TCP Probe checking: %s", t.Host)
+	conn, err := net.DialTimeout("tcp", t.Host, t.Timeout())
+	status := true
+	message := ""
+	if err != nil {
+		message = fmt.Sprintf("Error: %v", err)
+		log.Errorf("Native TCP Error: %v", err)
+		status = false
+	} else {
+		message = "TCP Connection Established Successfully!"
+		conn.Close()
+	}
+	return status, message
 }

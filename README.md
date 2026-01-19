@@ -10,6 +10,7 @@ EaseProbe is a simple, standalone, and lightWeight tool that can do health/statu
   - [2. Getting Start](#2-getting-start)
     - [2.1 Build](#21-build)
     - [2.2 Run](#22-run)
+    - [2.3 Cloudflare Workers](#23-cloudflare-workers)
   - [3. Configuration](#3-configuration)
     - [3.1 HTTP Probe Configuration](#31-http-probe-configuration)
     - [3.2 TCP Probe Configuration](#32-tcp-probe-configuration)
@@ -77,7 +78,7 @@ Ease Probe supports the following probing methods:
         key: /Users/user/.ssh/id_rsa
         cmd: "ps auxwe | grep easeprobe | grep -v grep"
         contain: easeprobe
-  ```
+      ```
 
 - **Client**. Currently, support the following native client. Support the mTLS. ( [Native Client Probe](#35-native-client-probe) )
   - **MySQL**. Connect to the MySQL server and run the `SHOW STATUS` SQL.
@@ -189,6 +190,34 @@ Running the following command for the local test
 $ build/bin/easeprobe -f config.yaml
 ```
 
+### 2.3 Cloudflare Workers
+
+To deploy EaseProbe to Cloudflare Workers, you need to have `wrangler` installed.
+
+1. Build the WASM binary and Worker script:
+   ```shell
+   $ make wasm
+   ```
+   This will create a `dist` directory containing `worker.js`, `main.wasm`, and a compressed `main.wasm.gz`.
+
+   **Note:** The WASM build is a "Slim" version to meet Cloudflare's size limits.
+   - It only supports **HTTP** probes.
+   - It only supports **Email**, **Bark**, and **Log** notifications.
+   - The configuration must be supplied as **JSON**, not YAML.
+
+2. Run locally using Wrangler:
+   ```shell
+   $ wrangler dev
+   ```
+
+3. Deploy to Cloudflare:
+   ```shell
+   $ wrangler deploy
+   ```
+
+   Wrangler will automatically compress the `main.wasm` during upload. If you encounter size limit errors, check the size of `dist/main.wasm.gz`. It must be under 3 MiB.
+
+You can configure the probes in `wrangler.toml` under `[vars]` (as a JSON string) or by setting environment variables in the Cloudflare dashboard.
 
 ## 3. Configuration
 

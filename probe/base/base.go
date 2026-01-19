@@ -32,13 +32,13 @@ type ProbeFuncType func() (bool, string)
 
 // DefaultOptions is the default options for all probe
 type DefaultOptions struct {
-	ProbeKind         string        `yaml:"-"`
-	ProbeTag          string        `yaml:"-"`
-	ProbeName         string        `yaml:"name"`
-	ProbeTimeout      time.Duration `yaml:"timeout,omitempty"`
-	ProbeTimeInterval time.Duration `yaml:"interval,omitempty"`
-	ProbeFunc         ProbeFuncType `yaml:"-"`
-	ProbeResult       *probe.Result `yaml:"-"`
+	ProbeKind         string               `yaml:"-" json:"-"`
+	ProbeTag          string               `yaml:"-" json:"-"`
+	ProbeName         string               `yaml:"name" json:"name"`
+	ProbeTimeout      probe.ConfigDuration `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	ProbeTimeInterval probe.ConfigDuration `yaml:"interval,omitempty" json:"interval,omitempty"`
+	ProbeFunc         ProbeFuncType        `yaml:"-" json:"-"`
+	ProbeResult       *probe.Result        `yaml:"-" json:"-"`
 }
 
 // Kind return the probe kind
@@ -53,12 +53,12 @@ func (d *DefaultOptions) Name() string {
 
 // Timeout get the probe timeout
 func (d *DefaultOptions) Timeout() time.Duration {
-	return d.ProbeTimeout
+	return d.ProbeTimeout.Duration
 }
 
 // Interval get the probe interval
 func (d *DefaultOptions) Interval() time.Duration {
-	return d.ProbeTimeInterval
+	return d.ProbeTimeInterval.Duration
 }
 
 // Result get the probe result
@@ -75,8 +75,8 @@ func (d *DefaultOptions) Config(gConf global.ProbeSettings,
 	d.ProbeTag = tag
 	d.ProbeFunc = fn
 
-	d.ProbeTimeout = gConf.NormalizeTimeOut(d.ProbeTimeout)
-	d.ProbeTimeInterval = gConf.NormalizeInterval(d.ProbeTimeInterval)
+	d.ProbeTimeout.Duration = gConf.NormalizeTimeOut(d.ProbeTimeout.Duration)
+	d.ProbeTimeInterval.Duration = gConf.NormalizeInterval(d.ProbeTimeInterval.Duration)
 
 	d.ProbeResult = probe.NewResult()
 	d.ProbeResult.Name = name

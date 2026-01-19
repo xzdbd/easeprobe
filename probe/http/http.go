@@ -33,15 +33,15 @@ import (
 // HTTP implements a config for HTTP.
 type HTTP struct {
 	base.DefaultOptions `yaml:",inline"`
-	URL                 string            `yaml:"url"`
-	ContentEncoding     string            `yaml:"content_encoding,omitempty"`
-	Method              string            `yaml:"method,omitempty"`
-	Headers             map[string]string `yaml:"headers,omitempty"`
-	Body                string            `yaml:"body,omitempty"`
+	URL                 string            `yaml:"url" json:"url"`
+	ContentEncoding     string            `yaml:"content_encoding,omitempty" json:"content_encoding,omitempty"`
+	Method              string            `yaml:"method,omitempty" json:"method,omitempty"`
+	Headers             map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+	Body                string            `yaml:"body,omitempty" json:"body,omitempty"`
 
 	//Option - HTTP Basic Auth Credentials
-	User string `yaml:"username,omitempty"`
-	Pass string `yaml:"password,omitempty"`
+	User string `yaml:"username,omitempty" json:"username,omitempty"`
+	Pass string `yaml:"password,omitempty" json:"password,omitempty"`
 
 	//Option - TLS Config
 	global.TLS `yaml:",inline"`
@@ -69,7 +69,7 @@ func (h *HTTP) Config(gConf global.ProbeSettings) error {
 	h.DefaultOptions.Config(gConf, kind, tag, name, h.URL, h.DoProbe)
 
 	if _, err := url.ParseRequestURI(h.URL); err != nil {
-		log.Errorf("URL is not valid - %+v url=%+v", err)
+		log.Errorf("URL is not valid - %+v url=%+v", err, h.URL)
 		return err
 	}
 

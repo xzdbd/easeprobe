@@ -1,4 +1,6 @@
-.idea/
-.vscode/
-build/*
-config.yaml
+main.wasm
+dist/*
+wasm_exec.js
+resources/js-yaml.min.js
+.wrangler/*
+node_modules/*
