@@ -10,15 +10,39 @@ fallthrough = false
 [vars]
 CONFIG_YAML = """
 http:
-  - name: Google
-    url: https://www.google.com
-    interval: 1m
+  - name: Blog
+    url: https://blog.xzdbd.com
+    interval: 3600s
     timeout: 5s
 tcp:
   - name: xray-reality-jp
     host: 154.19.186.11:20080
     interval: 60s
+  - name: xray-reality-us
+    host: 69.63.211.58:20081
+    interval: 60s
+  - name: xray-reality-us-cluster
+    host: 69.63.211.58:20082
+    interval: 60s
+notify:
+  email:
+    - name: "Email Notification"
+      server: smtp.163.com:994
+      username: shzxw_24@163.com
+      password: CBPCXTFBLYDCWGUX
+      to: "xzdbd@sina.com"
+  bark:
+    - name: "Bark Notification"
+      key: MzFf8r266UB6yjTZa6Xywk
+      server: "https://bark.xzdbd.com/push"
+      group: "k3s_notifications"
+      isArchive: "1"
 """
 
 [triggers]
 crons = ["* * * * *"]
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
