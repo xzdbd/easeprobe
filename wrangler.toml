@@ -21,9 +21,6 @@ tcp:
   - name: xray-reality-us
     host: 69.63.211.58:20081
     interval: 60s
-  - name: xray-reality-us-cluster
-    host: 69.63.211.58:20082
-    interval: 60s
 notify:
   email:
     - name: "Email Notification"
