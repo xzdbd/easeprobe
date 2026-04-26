@@ -18,9 +18,9 @@ tcp:
   - name: xray-reality-jp
     host: 154.19.186.11:20080
     interval: 60s
-  - name: xray-reality-us
-    host: 69.63.211.58:20081
-    interval: 60s
+  # - name: xray-reality-us
+  #  host: 69.63.211.58:20081
+  #  interval: 60s
 notify:
   email:
     - name: "Email Notification"
